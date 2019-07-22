@@ -130,7 +130,8 @@ function convertXMLtoJSON(bankPath) {
     for(let j = 0; j < xml['Bank']['Section'][6]['Key'].length; j++) {
       json[xml['Bank']['Section'][6]['Key'][j]['_attributes']['name']] = xml['Bank']['Section'][6]['Key'][j]['Value']['_attributes']['fixed']
     }
-
+    json = JSON.stringify(json)
+    console.log(json)
     return resolve(json)
   })
 }
