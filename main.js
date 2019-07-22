@@ -86,34 +86,16 @@ function uploadReplay(configObj, replay) {
   })
 }
 
-function makeArchive (configObj) {
-    const archivePath = path.join(configObj.replayPath, 'archive') // Move all uploaded replays to /archive
-    if (!fs.existsSync(archivePath)) {
-      fs.mkdirSync(archivePath)
-    }
-}
-
-function moveReplayToArchive (configObj, replay) {
-  const archivePath = path.join(configObj.replayPath, 'archive') // Move all uploaded replays to /archive
-
-  fs.move(replay, path.join(archivePath, path.basename(replay)), { overwrite: true })
-    .then(() => {
-      console.log(`Successfully uploaded and moved ${path.basename(replay)}`)
-    })
-    .catch(err => {
-      console.error(err)
-    })
-}
-
-function initReplayWatcher (configObj) {
-    const watcher = chokidar.watch(configObj.replayPath, { // Watches wow Addon folder for new addons or deletions
+function initBankWatcher (configObj) {
+    const stateBankPath = path.join(configObj.BankPath, 'state.SC2Bank') // Only look for changes in state.SC2Bank
+    const watcher = chokidar.watch(stateBankPath, { // Watches bankpath for XML change
       ignored: /(^|[/\\])\../,
       persistent: true,
       depth: 0
     })
     watcher
       .on('add', function (path) {
-        console.log('New Replay: ', path)
+        console.log('New Bank: ', path)
 
         let opts = {
           resources: [path],
@@ -125,9 +107,9 @@ function initReplayWatcher (configObj) {
 
         waitOn(opts, function (err) {
           if (err) { return handleError(err); }
-          uploadReplay(configObj, path).then(val => {
-            moveReplayToArchive(configObj, path)
-            })
+          //uploadReplay(configObj, path).then(val => {
+          //  moveReplayToArchive(configObj, path)
+          //  })
           })
       })
 
@@ -139,13 +121,12 @@ function initReplayWatcher (configObj) {
 
 // --- Initialization Start---
 let configObj
-let replayWatcher
+let BankWatcher
 initConfig().then(value => {
   configObj = value // Sets config settings
   return configObj
 }).then(val => {
-  //makeArchive(configObj)
-  //replayWatcher = initReplayWatcher(configObj)
+  BankWatcher = initBankWatcher(configObj)
 })
 //  --- Initialization End---
 
