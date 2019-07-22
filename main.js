@@ -9,6 +9,7 @@ const randomstring = require('randomstring')
 const base64 = require('base-64')
 const chokidar = require('chokidar')
 const waitOn = require('wait-on');
+const convert = require('xml-js');
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -86,6 +87,54 @@ function uploadReplay(configObj, replay) {
   })
 }
 
+
+function convertXMLtoJSON(bankPath) {
+  let json = {}
+  let options = {
+    compact: true
+  }
+  return new Promise((resolve, reject) => {
+    let xml = fs.readFileSync(bankPath)
+    xml = JSON.parse(convert.xml2json(xml, options))
+
+    json = {
+      'wave':                   xml['Bank']['Section'][0]['Key']['Value']['_attributes']['int'],
+      'decisionPoint':          xml['Bank']['Section'][1]['Key']['Value']['_attributes']['int'],
+    }   
+
+    // Get Signals
+    for(let j = 0; j < xml['Bank']['Section'][2]['Key'].length; j++) {
+        json[xml['Bank']['Section'][2]['Key'][j]['_attributes']['name']] = xml['Bank']['Section'][2]['Key'][j]['Value']['_attributes']['fixed']
+    }
+
+    // Get Building counts
+    for(let j = 0; j < xml['Bank']['Section'][3]['Key'].length; j++) {
+      let temp = xml['Bank']['Section'][3]['Key'][j]['Value']['_attributes']['int']
+      if (temp === undefined) {
+        temp = xml['Bank']['Section'][3]['Key'][j]['Value']['_attributes']['fixed']
+      }
+      json[xml['Bank']['Section'][3]['Key'][j]['_attributes']['name']] = temp
+    }
+  
+    // Get States
+    for(let j = 0; j < xml['Bank']['Section'][4]['Key'].length; j++) {
+      json[xml['Bank']['Section'][4]['Key'][j]['_attributes']['name']] = xml['Bank']['Section'][4]['Key'][j]['Value']['_attributes']['fixed']
+    }
+
+    // Get Units
+    for(let j = 0; j < xml['Bank']['Section'][5]['Key'].length; j++) {
+      json[xml['Bank']['Section'][5]['Key'][j]['_attributes']['name']] = xml['Bank']['Section'][5]['Key'][j]['Value']['_attributes']['int']
+    }
+
+    // Get Reward
+    for(let j = 0; j < xml['Bank']['Section'][6]['Key'].length; j++) {
+      json[xml['Bank']['Section'][6]['Key'][j]['_attributes']['name']] = xml['Bank']['Section'][6]['Key'][j]['Value']['_attributes']['fixed']
+    }
+
+    return resolve(json)
+  })
+}
+
 function initBankWatcher (configObj) {
     const stateBankPath = path.join(configObj.BankPath, 'state.SC2Bank') // Only look for changes in state.SC2Bank
     const watcher = chokidar.watch(stateBankPath, { // Watches bankpath for XML change
@@ -93,6 +142,7 @@ function initBankWatcher (configObj) {
       persistent: true,
       depth: 0
     })
+    let jsonBank
     watcher
       .on('add', function (path) {
         console.log('New Bank: ', path)
@@ -107,9 +157,8 @@ function initBankWatcher (configObj) {
 
         waitOn(opts, function (err) {
           if (err) { return handleError(err); }
-          //uploadReplay(configObj, path).then(val => {
-          //  moveReplayToArchive(configObj, path)
-          //  })
+            jsonBank = convertXMLtoJSON(path)
+            console.log(jsonBank)
           })
       })
 
