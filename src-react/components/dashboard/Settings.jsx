@@ -8,8 +8,6 @@ export class Settings extends Component {
 
     onModConfig() {
         const { config } = this.props
-        config.ActionURL = document.getElementById("ActionURL").value
-        config.StateURL = document.getElementById("StateURL").value
         config.BankPath = document.getElementById("BankPath").value
         this.props.onModConfig(config)
     }
@@ -29,14 +27,6 @@ export class Settings extends Component {
                 <div className="row">
                     <table width="100%" className="settingsTable">
                         <tbody>
-                            <tr>
-                                <td><a href="#" onClick={() => shell.openExternal(config.ActionURL)}>Action URL</a></td>
-                                <td><span><input id="ActionURL" type="text" defaultValue={config.ActionURL}></input></span></td>
-                            </tr>
-                            <tr>
-                                <td><a href="#" onClick={() => shell.openExternal(config.StateURL)}>State URL</a></td>
-                                <td><span><input id="StateURL" type="text" defaultValue={config.StateURL}></input></span></td>
-                            </tr>
                             <tr>
                                 <td><a href="#" onClick={this.onOpenFP.bind(this)}>Bank Directory</a></td>
                                 <td><span><input id="BankPath" type="text" defaultValue={config.BankPath}></input></span></td>
