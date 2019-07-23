@@ -143,35 +143,34 @@ function initBankWatcher (configObj) {
 function saveNewActionToBank(JSONAction) {
   console.log("Writing new action to bank file") 
   let data = `<?xml version="1.0" encoding="utf-8"?>
-  <Bank version="1">
-      <Section name="action">
-          <Key name="ImmortalsTop">
-              <Value int="${JSONAction['ImmortalsTop']}"/>
-          </Key>
-          <Key name="DecisionPoint">
-              <Value int="${JSONAction['DecisionPoint']}"/>
-          </Key>
-          <Key name="ImmortalsBottom">
-              <Value int="${JSONAction['ImmortalsBottom']}"/>
-          </Key>
-          <Key name="MarinesBottom">
-              <Value int="${JSONAction['MarinesBottom']}"/>
-          </Key>
-          <Key name="Pylons">
-              <Value int="${JSONAction['Pylons']}"/>
-          </Key>
-          <Key name="BanelingsBottom">
-              <Value int="${JSONAction['BanelingsBottom']}"/>
-          </Key>
-          <Key name="MarinesTop">
-              <Value int="${JSONAction['MarinesTop']}"/>
-          </Key>
-          <Key name="BanelingsTop">
-              <Value int="${JSONAction['BanelingsTop']}"/>
-          </Key>
-      </Section>
-  </Bank>
-  `
+<Bank version="1">
+    <Section name="action">
+        <Key name="ImmortalsTop">
+            <Value int="${JSONAction['ImmortalsTop']}"/>
+        </Key>
+        <Key name="DecisionPoint">
+            <Value int="${JSONAction['DecisionPoint']}"/>
+        </Key>
+        <Key name="ImmortalsBottom">
+            <Value int="${JSONAction['ImmortalsBottom']}"/>
+        </Key>
+        <Key name="MarinesBottom">
+            <Value int="${JSONAction['MarinesBottom']}"/>
+        </Key>
+        <Key name="Pylons">
+            <Value int="${JSONAction['Pylons']}"/>
+        </Key>
+        <Key name="BanelingsBottom">
+            <Value int="${JSONAction['BanelingsBottom']}"/>
+        </Key>
+        <Key name="MarinesTop">
+            <Value int="${JSONAction['MarinesTop']}"/>
+        </Key>
+        <Key name="BanelingsTop">
+            <Value int="${JSONAction['BanelingsTop']}"/>
+        </Key>
+    </Section>
+</Bank>`
   fs.writeFile(path.join(configObj.BankPath, 'action.SC2Bank'), data, (err) => { 
       if (err) throw err; 
   }) 
