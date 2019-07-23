@@ -8,7 +8,7 @@
     "test": "jest --config=jest.config.json",
     "build": "webpack --mode development",
     "build:hot": "webpack --watch --mode development",
-    "package-win": "electron-builder --win --publish never"
+    "package-win": "electron-packager . WorldOfAddons --overwrite --asar --platform=win32 --arch=x64 --icon=assets/icon.ico --prune --out=release/ --version-string.CompanyName=WorldOfAddons --version-string.FileDescription=WorldOfAddons --version-string.ProductName=\"WorldOfAddons\""
   },
   "build": {
     "appId": "com.electron.StateActionRelay",
@@ -59,6 +59,7 @@
     "chokidar": "^2.1.6",
     "cross-env": "^5.2.0",
     "electron-fetch": "^1.3.0",
+    "electron-packager": "^13.1.1",
     "fs": "0.0.1-security",
     "fs-extra": "^7.0.1",
     "lockfile": "^1.0.4",
