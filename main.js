@@ -97,41 +97,15 @@ function convertXMLtoJSON(bankPath) {
     let xml = fs.readFileSync(bankPath)
     xml = JSON.parse(convert.xml2json(xml, options))
 
-    json = {
-      'wave':                   xml['Bank']['Section'][0]['Key']['Value']['_attributes']['int'],
-      'decisionPoint':          xml['Bank']['Section'][1]['Key']['Value']['_attributes']['int'],
-    }   
-
-    // Get Signals
-    for(let j = 0; j < xml['Bank']['Section'][2]['Key'].length; j++) {
-        json[xml['Bank']['Section'][2]['Key'][j]['_attributes']['name']] = xml['Bank']['Section'][2]['Key'][j]['Value']['_attributes']['fixed']
-    }
-
-    // Get Building counts
-    for(let j = 0; j < xml['Bank']['Section'][3]['Key'].length; j++) {
-      let temp = xml['Bank']['Section'][3]['Key'][j]['Value']['_attributes']['int']
-      if (temp === undefined) {
-        temp = xml['Bank']['Section'][3]['Key'][j]['Value']['_attributes']['fixed']
+    xml['Bank']['Section']['Key'].forEach( val => {
+      let tmp = val['Value']['_attributes']['int']
+      if (tmp === undefined) {
+        tmp = val['Value']['_attributes']['fixed']
       }
-      json[xml['Bank']['Section'][3]['Key'][j]['_attributes']['name']] = temp
-    }
-  
-    // Get States
-    for(let j = 0; j < xml['Bank']['Section'][4]['Key'].length; j++) {
-      json[xml['Bank']['Section'][4]['Key'][j]['_attributes']['name']] = xml['Bank']['Section'][4]['Key'][j]['Value']['_attributes']['fixed']
-    }
+      json[val['_attributes']['name']] = tmp
+    })
 
-    // Get Units
-    for(let j = 0; j < xml['Bank']['Section'][5]['Key'].length; j++) {
-      json[xml['Bank']['Section'][5]['Key'][j]['_attributes']['name']] = xml['Bank']['Section'][5]['Key'][j]['Value']['_attributes']['int']
-    }
-
-    // Get Reward
-    for(let j = 0; j < xml['Bank']['Section'][6]['Key'].length; j++) {
-      json[xml['Bank']['Section'][6]['Key'][j]['_attributes']['name']] = xml['Bank']['Section'][6]['Key'][j]['Value']['_attributes']['fixed']
-    }
     json = JSON.stringify(json)
-    console.log(json)
     return resolve(json)
   })
 }
