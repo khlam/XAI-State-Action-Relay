@@ -27,8 +27,6 @@ export function initConfig () {
     // If config.json does not exist, create it with blank values
     if (!fs.existsSync(config)) {
       configObj = {
-        'ActionURL': '',
-        'StateURL': '',
         'BankPath': '',
       }
       return resolve(saveToConfig(configObj))

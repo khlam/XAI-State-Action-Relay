@@ -5,7 +5,6 @@ import path from 'path'
 
 const request = require('request')
 const fs = require('fs-extra')
-const randomstring = require('randomstring')
 const base64 = require('base-64')
 const chokidar = require('chokidar')
 const waitOn = require('wait-on');
@@ -64,20 +63,12 @@ app.on('activate', () => {
 // code. You can also put them in separate files and require them here.
 
 
-function uploadReplay(configObj, replay) {
+function uploadState(JSONBank) {
   return new Promise((resolve, reject) => {
-    request.post('https://sc2replaystats.com/upload_replay.php', {
+    console.log(JSONBank)
+    request.post('https://script.google.com/macros/s/AKfycby1BvXRK7Cr6G_FbgIYZERXL9onihxmyxdWBVwikURxhUUZwdSP/exec', {
       formData: {
-        'token': randomstring.generate(32),
-        'upload_method': 'test_upload',
-          'hashkey': base64.decode(configObj.hash),
-          'timestamp': Math.round(+new Date() / 1000),
-          'Filedata': {
-              value: fs.readFileSync(replay),
-              options: {
-                  filename: path.basename(replay)
-              }
-          }
+          'state': JSONBank,
       }
     }), (err) => {
       console.log("Upload err: ",err)
@@ -86,7 +77,6 @@ function uploadReplay(configObj, replay) {
     return resolve()
   })
 }
-
 
 function convertXMLtoJSON(bankPath) {
   let json = {}
@@ -119,7 +109,7 @@ function initBankWatcher (configObj) {
     })
     let jsonBank
     watcher
-      .on('add', function (path) {
+      .on('change', function (path) {
         console.log('New Bank: ', path)
 
         let opts = {
@@ -132,8 +122,10 @@ function initBankWatcher (configObj) {
 
         waitOn(opts, function (err) {
           if (err) { return handleError(err); }
-            jsonBank = convertXMLtoJSON(path)
-            console.log(jsonBank)
+            convertXMLtoJSON(path).then( newBank => {
+              console.log(newBank)
+              uploadState(newBank)
+            })
           })
       })
 
@@ -141,7 +133,57 @@ function initBankWatcher (configObj) {
         console.log('ERROR: ', error)
       })
     return watcher
-  }
+}
+
+function initActionBankWatcher(configObj) {
+  const stateBankPath = path.join(configObj.BankPath, 'action.SC2Bank') // Only look for changes in action.SC2Bank
+  const watcher = chokidar.watch(stateBankPath, { // Watches bankpath for XML change
+    ignored: /(^|[/\\])\../,
+    persistent: true,
+    depth: 0
+  })
+  let jsonBank
+  watcher
+    .on('change', function (path) {
+      console.log('New Bank: ', path)
+
+      let opts = {
+        resources: [path],
+        delay: 1000, // initial delay in ms, default 0
+        interval: 100, // poll interval in ms, default 250ms
+        timeout: 30000, // timeout in ms, default Infinity
+        window: 750, // stabilization time in ms, default 750ms
+      };
+
+      waitOn(opts, function (err) {
+        if (err) { return handleError(err); }
+          convertXMLtoJSON(path).then( newBank => {
+            console.log(newBank)
+            uploadState(newBank)
+          })
+        })
+    })
+
+    .on('error', function (error) {
+      console.log('ERROR: ', error)
+    })
+  return watcher
+}
+
+function saveNewState() {
+
+
+  /*
+  const request = net.request({
+    method: 'GET',
+    protocol: 'https:',
+    hostname: 'github.com',
+    port: 443,
+    path: '/'
+  })
+  */
+
+}
 
 // --- Initialization Start---
 let configObj
@@ -154,10 +196,10 @@ initConfig().then(value => {
 })
 //  --- Initialization End---
 
-
 ipcMain.on('onModConfig', (e, newConfig) => {
   configObj = newConfig
   saveToConfig(newConfig)
+  BankWatcher = initBankWatcher(configObj)
 })
 
 // need to wait for react to finishing building Dom
