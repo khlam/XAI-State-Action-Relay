@@ -1,14 +1,15 @@
 // Modules to control application life and create native browser window
 import { app, BrowserWindow, ipcMain } from 'electron'
 import { initConfig, saveToConfig } from './src/config'
+import fetch from 'electron-fetch'
 import path from 'path'
 
 const request = require('request')
 const fs = require('fs-extra')
-const base64 = require('base-64')
 const chokidar = require('chokidar')
 const waitOn = require('wait-on');
 const convert = require('xml-js');
+var _ = require('lodash');
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -65,7 +66,7 @@ app.on('activate', () => {
 
 function uploadState(JSONBank) {
   return new Promise((resolve, reject) => {
-    console.log(JSONBank)
+    console.log("Uploading new state to Google Sheets DB")
     request.post('https://script.google.com/macros/s/AKfycby1BvXRK7Cr6G_FbgIYZERXL9onihxmyxdWBVwikURxhUUZwdSP/exec', {
       formData: {
           'state': JSONBank,
@@ -74,6 +75,7 @@ function uploadState(JSONBank) {
       console.log("Upload err: ",err)
       return reject()
     }
+    console.log("State Upload success.")
     return resolve()
   })
 }
@@ -94,8 +96,6 @@ function convertXMLtoJSON(bankPath) {
       }
       json[val['_attributes']['name']] = tmp
     })
-
-    json = JSON.stringify(json)
     return resolve(json)
   })
 }
@@ -110,7 +110,7 @@ function initBankWatcher (configObj) {
     let jsonBank
     watcher
       .on('change', function (path) {
-        console.log('New Bank: ', path)
+        console.log('Bank Change: ', path)
 
         let opts = {
           resources: [path],
@@ -123,8 +123,13 @@ function initBankWatcher (configObj) {
         waitOn(opts, function (err) {
           if (err) { return handleError(err); }
             convertXMLtoJSON(path).then( newBank => {
-              console.log(newBank)
-              uploadState(newBank)
+              currentStateJSON = newBank
+              if ((parseInt(newBank['wave']) + 1) === parseInt(newBank['DecisionPoint'])) {
+                console.log(`State Change: \t Wave ${newBank['wave']} \t Decision Point ${newBank['DecisionPoint']}`)
+                jsonBank = JSON.stringify(newBank)
+                console.log(jsonBank)
+                uploadState(jsonBank)
+              }
             })
           })
       })
@@ -135,66 +140,81 @@ function initBankWatcher (configObj) {
     return watcher
 }
 
-function initActionBankWatcher(configObj) {
-  const stateBankPath = path.join(configObj.BankPath, 'action.SC2Bank') // Only look for changes in action.SC2Bank
-  const watcher = chokidar.watch(stateBankPath, { // Watches bankpath for XML change
-    ignored: /(^|[/\\])\../,
-    persistent: true,
-    depth: 0
-  })
-  let jsonBank
-  watcher
-    .on('change', function (path) {
-      console.log('New Bank: ', path)
-
-      let opts = {
-        resources: [path],
-        delay: 1000, // initial delay in ms, default 0
-        interval: 100, // poll interval in ms, default 250ms
-        timeout: 30000, // timeout in ms, default Infinity
-        window: 750, // stabilization time in ms, default 750ms
-      };
-
-      waitOn(opts, function (err) {
-        if (err) { return handleError(err); }
-          convertXMLtoJSON(path).then( newBank => {
-            console.log(newBank)
-            uploadState(newBank)
-          })
-        })
-    })
-
-    .on('error', function (error) {
-      console.log('ERROR: ', error)
-    })
-  return watcher
+function saveNewActionToBank(JSONAction) {
+  console.log("Writing new action to bank file") 
+  let data = `<?xml version="1.0" encoding="utf-8"?>
+  <Bank version="1">
+      <Section name="action">
+          <Key name="ImmortalsTop">
+              <Value int="${JSONAction['ImmortalsTop']}"/>
+          </Key>
+          <Key name="DecisionPoint">
+              <Value int="${JSONAction['DecisionPoint']}"/>
+          </Key>
+          <Key name="ImmortalsBottom">
+              <Value int="${JSONAction['ImmortalsBottom']}"/>
+          </Key>
+          <Key name="MarinesBottom">
+              <Value int="${JSONAction['MarinesBottom']}"/>
+          </Key>
+          <Key name="Pylons">
+              <Value int="${JSONAction['Pylons']}"/>
+          </Key>
+          <Key name="BanelingsBottom">
+              <Value int="${JSONAction['BanelingsBottom']}"/>
+          </Key>
+          <Key name="MarinesTop">
+              <Value int="${JSONAction['MarinesTop']}"/>
+          </Key>
+          <Key name="BanelingsTop">
+              <Value int="${JSONAction['BanelingsTop']}"/>
+          </Key>
+      </Section>
+  </Bank>
+  `
+  fs.writeFile(path.join(configObj.BankPath, 'action.SC2Bank'), data, (err) => { 
+      if (err) throw err; 
+  }) 
 }
 
-function saveNewState() {
-
-
-  /*
-  const request = net.request({
-    method: 'GET',
-    protocol: 'https:',
-    hostname: 'github.com',
-    port: 443,
-    path: '/'
+function newAction() {
+  console.log(`Checking for new action to match current Decision Point (${currentStateJSON['DecisionPoint']})`)
+  fetch("https://spreadsheets.google.com/feeds/list/1K76pT8RHJGJX396WAYpaMk-bYzozSjb_HK7_CQPnpvo/2/public/basic?alt=json")
+  .then((res) =>{ return res.json() })
+  .then((out) => {
+      let newActionJSON = JSON.parse(out['feed']['entry'][0]['title']['$t'])
+      let currentActionJSON
+      if (currentStateJSON['DecisionPoint'] === newActionJSON['DecisionPoint']) {
+        convertXMLtoJSON(path.join(configObj.BankPath, 'action.SC2Bank')).then( res => {
+          currentActionJSON = res
+          if (_.isEqual(currentActionJSON, newActionJSON) === false){
+            console.log(`Action Decision Point matches current state, and it is not the same as the current action bank file. ${currentStateJSON['DecisionPoint']}/${newActionJSON['DecisionPoint']}`)
+            saveNewActionToBank(newActionJSON)
+          }
+        })
+      }
   })
-  */
-
 }
 
 // --- Initialization Start---
 let configObj
 let BankWatcher
+let currentStateJSON 
+
 initConfig().then(value => {
   configObj = value // Sets config settings
   return configObj
 }).then(val => {
+  convertXMLtoJSON(path.join(configObj.BankPath, 'state.SC2Bank')).then(res => {
+    currentStateJSON = res
+  })
   BankWatcher = initBankWatcher(configObj)
 })
 //  --- Initialization End---
+
+// poll action JSON URL every 3 seconds
+let intervalID = setInterval(newAction, 3000);
+
 
 ipcMain.on('onModConfig', (e, newConfig) => {
   configObj = newConfig
