@@ -17,14 +17,14 @@ export let mainWindow
 
 function createWindow () {
   // Create the browser window.
-  mainWindow = new BrowserWindow({ width: 500, height: 150, /*icon: 'assets/500x500.png',*/ 'web-preferences': { 'direct-write': false, 'subpixel-font-scaling': false } })
+  mainWindow = new BrowserWindow({ width: 420, height: 210, /*icon: 'assets/500x500.png',*/ 'web-preferences': { 'direct-write': false, 'subpixel-font-scaling': false } })
 
   // and load the index.html of the app.
   mainWindow.loadFile('dist/src-react/index.html')
-
+  mainWindow.setResizable(false)
   // Open the DevTools.
   if (process.env.ENV === 'dev') {
-    mainWindow.webContents.openDevTools()
+    //mainWindow.webContents.openDevTools()
   } else {
     mainWindow.setMenu(null) // disable menu
   }

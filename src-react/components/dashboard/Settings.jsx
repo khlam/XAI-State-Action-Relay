@@ -1,21 +1,25 @@
 import React, { Component } from 'react'
 const {shell} = require('electron')
-const base64 = require('base-64')
+const {dialog} = require('electron').remote
+
+
 export class Settings extends Component {
     constructor (props) {
         super(props)
     }
-
+    
     onModConfig() {
         const { config } = this.props
         config.BankPath = document.getElementById("BankPath").value
         this.props.onModConfig(config)
     }
 
-    onOpenFP() {
+    onChooseFolder(){
         const { config } = this.props
-        if (config.replayPath != ""){
-            shell.openItem(config.replayPath)
+        const path = dialog.showOpenDialog({ properties: ['openDirectory'], defaultPath: config.BankPath })
+        if (path !== undefined) {
+          settings.addonDir = path[0]
+          this.props.onNewSettings(settings)
         }
         return
     }
@@ -24,18 +28,16 @@ export class Settings extends Component {
         const { config } = this.props
         return (
             <div>
+                <div className="row">Bank Directory</div>
                 <div className="row">
-                    <table width="100%" className="settingsTable">
-                        <tbody>
-                            <tr>
-                                <td><a href="#" onClick={this.onOpenFP.bind(this)}>Bank Directory</a></td>
-                                <td><span><input id="BankPath" type="text" defaultValue={config.BankPath}></input></span></td>
-                            </tr>
-                        </tbody> 
-                    </table>
+                        <input id="BankPath" type="text" onClick={this.onChooseFolder.bind(this)} defaultValue={config.BankPath}></input>
+                        <button onClick={this.onModConfig.bind(this)}>Save</button>
                 </div>
                 <div className="row">
-                    <button onClick={this.onModConfig.bind(this)}>Save</button>
+                </div>
+                <div className="row">
+                    <center><a href="#" onClick={() => shell.openExternal('https://github.com/khlam/XAI-State-Action-Relay')}>Source</a> - <a href="#" onClick={() => shell.openExternal('https://github.com/khlam/XAI-State-Action-Relay/blob/master/README.md')}>Instructions</a></center>
+                    <center> Created 2019 by <a href="#" onClick={() => shell.openExternal('https://github.com/khlam')}>@khlam</a> for <a href="#" onClick={() => shell.openExternal('https://github.com/osu-xai')}>@osu-xai</a> </center>
                 </div>
             </div>
         )
