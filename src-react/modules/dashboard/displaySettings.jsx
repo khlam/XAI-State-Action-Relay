@@ -13,7 +13,8 @@ class SettingsContainer extends React.Component {
 
 const mapStateToProps = (state) => {
   return {
-    config: state.frame.config
+    config: state.frame.config,
+    dialog: state.frame.dialog
   }
 }
 

@@ -8,6 +8,7 @@ import configureStore from './configureStore'
 
 const store = configureStore()
 const electronChannels = [
+  'newDialog',
   'modConfig',
 ]
 
@@ -15,7 +16,7 @@ class App extends React.Component {
   render () {
     return (
       <Provider store={store}>
-        <div>
+        <div className="container">
           <Dashboard />
           <IpcListener channels={electronChannels} />
         </div>

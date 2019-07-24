@@ -17,14 +17,14 @@ export let mainWindow
 
 function createWindow () {
   // Create the browser window.
-  mainWindow = new BrowserWindow({ width: 500, height: 150, /*icon: 'assets/500x500.png',*/ 'web-preferences': { 'direct-write': false, 'subpixel-font-scaling': false } })
+  mainWindow = new BrowserWindow({ width: 420, height: 210, /*icon: 'assets/500x500.png',*/ 'web-preferences': { 'direct-write': false, 'subpixel-font-scaling': false } })
 
   // and load the index.html of the app.
   mainWindow.loadFile('dist/src-react/index.html')
-
+  //mainWindow.setResizable(false)
   // Open the DevTools.
   if (process.env.ENV === 'dev') {
-    mainWindow.webContents.openDevTools()
+    //mainWindow.webContents.openDevTools()
   } else {
     mainWindow.setMenu(null) // disable menu
   }
@@ -66,7 +66,7 @@ app.on('activate', () => {
 
 function uploadState(JSONBank) {
   return new Promise((resolve, reject) => {
-    console.log("Uploading new state to Google Sheets DB")
+    _debug("Uploading new state to Google Sheets DB")
     request.post('https://script.google.com/macros/s/AKfycby1BvXRK7Cr6G_FbgIYZERXL9onihxmyxdWBVwikURxhUUZwdSP/exec', {
       formData: {
           'state': JSONBank,
@@ -75,7 +75,7 @@ function uploadState(JSONBank) {
       console.log("Upload err: ",err)
       return reject()
     }
-    console.log("State Upload success.")
+    _debug("New state upload success.")
     return resolve()
   })
 }
@@ -88,7 +88,6 @@ function convertXMLtoJSON(bankPath) {
   return new Promise((resolve, reject) => {
     let xml = fs.readFileSync(bankPath)
     xml = JSON.parse(convert.xml2json(xml, options))
-
     xml['Bank']['Section']['Key'].forEach( val => {
       let tmp = val['Value']['_attributes']['int']
       if (tmp === undefined) {
@@ -110,8 +109,7 @@ function initBankWatcher (configObj) {
     let jsonBank
     watcher
       .on('change', function (path) {
-        console.log('Bank Change: ', path)
-
+        _debug(`Bank change ${path}`)
         let opts = {
           resources: [path],
           delay: 1000, // initial delay in ms, default 0
@@ -125,15 +123,14 @@ function initBankWatcher (configObj) {
             convertXMLtoJSON(path).then( newBank => {
               currentStateJSON = newBank
               if ((parseInt(newBank['wave']) + 1) === parseInt(newBank['DecisionPoint'])) {
-                console.log(`State Change: \t Wave ${newBank['wave']} \t Decision Point ${newBank['DecisionPoint']}`)
+                _debug(`State Change: \t Wave ${newBank['wave']} \t Decision Point ${newBank['DecisionPoint']}`)
                 jsonBank = JSON.stringify(newBank)
-                console.log(jsonBank)
+                _debug(jsonBank)
                 uploadState(jsonBank)
               }
             })
           })
       })
-
       .on('error', function (error) {
         console.log('ERROR: ', error)
       })
@@ -141,44 +138,43 @@ function initBankWatcher (configObj) {
 }
 
 function saveNewActionToBank(JSONAction) {
-  console.log("Writing new action to bank file") 
+  _debug("Writing new action to bank file")
   let data = `<?xml version="1.0" encoding="utf-8"?>
-  <Bank version="1">
-      <Section name="action">
-          <Key name="ImmortalsTop">
-              <Value int="${JSONAction['ImmortalsTop']}"/>
-          </Key>
-          <Key name="DecisionPoint">
-              <Value int="${JSONAction['DecisionPoint']}"/>
-          </Key>
-          <Key name="ImmortalsBottom">
-              <Value int="${JSONAction['ImmortalsBottom']}"/>
-          </Key>
-          <Key name="MarinesBottom">
-              <Value int="${JSONAction['MarinesBottom']}"/>
-          </Key>
-          <Key name="Pylons">
-              <Value int="${JSONAction['Pylons']}"/>
-          </Key>
-          <Key name="BanelingsBottom">
-              <Value int="${JSONAction['BanelingsBottom']}"/>
-          </Key>
-          <Key name="MarinesTop">
-              <Value int="${JSONAction['MarinesTop']}"/>
-          </Key>
-          <Key name="BanelingsTop">
-              <Value int="${JSONAction['BanelingsTop']}"/>
-          </Key>
-      </Section>
-  </Bank>
-  `
+<Bank version="1">
+    <Section name="action">
+        <Key name="ImmortalsTop">
+            <Value int="${JSONAction['ImmortalsTop']}"/>
+        </Key>
+        <Key name="DecisionPoint">
+            <Value int="${JSONAction['DecisionPoint']}"/>
+        </Key>
+        <Key name="ImmortalsBottom">
+            <Value int="${JSONAction['ImmortalsBottom']}"/>
+        </Key>
+        <Key name="MarinesBottom">
+            <Value int="${JSONAction['MarinesBottom']}"/>
+        </Key>
+        <Key name="Pylons">
+            <Value int="${JSONAction['Pylons']}"/>
+        </Key>
+        <Key name="BanelingsBottom">
+            <Value int="${JSONAction['BanelingsBottom']}"/>
+        </Key>
+        <Key name="MarinesTop">
+            <Value int="${JSONAction['MarinesTop']}"/>
+        </Key>
+        <Key name="BanelingsTop">
+            <Value int="${JSONAction['BanelingsTop']}"/>
+        </Key>
+    </Section>
+</Bank>`
   fs.writeFile(path.join(configObj.BankPath, 'action.SC2Bank'), data, (err) => { 
       if (err) throw err; 
   }) 
 }
 
 function newAction() {
-  console.log(`Checking for new action to match current Decision Point (${currentStateJSON['DecisionPoint']})`)
+  _debug(`Waiting for new action. (Decision Point ${currentStateJSON['DecisionPoint']})`)
   fetch("https://spreadsheets.google.com/feeds/list/1K76pT8RHJGJX396WAYpaMk-bYzozSjb_HK7_CQPnpvo/2/public/basic?alt=json")
   .then((res) =>{ return res.json() })
   .then((out) => {
@@ -188,12 +184,17 @@ function newAction() {
         convertXMLtoJSON(path.join(configObj.BankPath, 'action.SC2Bank')).then( res => {
           currentActionJSON = res
           if (_.isEqual(currentActionJSON, newActionJSON) === false){
-            console.log(`Action Decision Point matches current state, and it is not the same as the current action bank file. ${currentStateJSON['DecisionPoint']}/${newActionJSON['DecisionPoint']}`)
+            _debug(`New action matches current decision point ${currentStateJSON['DecisionPoint']}/${newActionJSON['DecisionPoint']} `)
             saveNewActionToBank(newActionJSON)
           }
         })
       }
   })
+}
+
+function _debug(text) {
+  console.log(text)
+  mainWindow.webContents.send('newDialog', text)
 }
 
 // --- Initialization Start---
@@ -214,7 +215,6 @@ initConfig().then(value => {
 
 // poll action JSON URL every 3 seconds
 let intervalID = setInterval(newAction, 3000);
-
 
 ipcMain.on('onModConfig', (e, newConfig) => {
   configObj = newConfig

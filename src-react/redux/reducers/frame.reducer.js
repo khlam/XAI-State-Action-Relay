@@ -10,6 +10,17 @@ const config = (state = configData, action) => {
   }
 }
 
+const dialogMsg = "Initilizing..."
+const dialog = (state = dialogMsg, action) => {
+  switch (action.type) {
+    case 'newDialog':
+      return action
+    default:
+      return state
+  }
+}
+
 export const frame = combineReducers({
-  config
+  config,
+  dialog
 })

@@ -1,7 +1,6 @@
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
-const base64 = require('base-64')
 
 export function saveToConfig (configObj) {
   const homedir = os.homedir() // Fetchs user's homedir
