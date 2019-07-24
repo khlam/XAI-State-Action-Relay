@@ -8,6 +8,7 @@ import configureStore from './configureStore'
 
 const store = configureStore()
 const electronChannels = [
+  'newDialog',
   'modConfig',
 ]
 

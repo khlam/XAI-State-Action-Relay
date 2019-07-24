@@ -12,3 +12,13 @@ span {
 input {
     width: 300px;
 }
+
+.debug {
+    padding: 10px;
+    background-color: white;
+    color: black;
+    height: 30px;
+    width: 300px;
+    font-size: 10px;
+    position: relative;
+}

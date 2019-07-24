@@ -25,7 +25,7 @@ export class Settings extends Component {
     }
 
     render () {
-        const { config } = this.props
+        const { config, dialog } = this.props
         return (
             <div>
                 <div className="row">Bank Directory</div>
@@ -33,7 +33,8 @@ export class Settings extends Component {
                         <input id="BankPath" type="text" onClick={this.onChooseFolder.bind(this)} defaultValue={config.BankPath}></input>
                         <button onClick={this.onModConfig.bind(this)}>Save</button>
                 </div>
-                <div className="row">
+                <div className="row" className="debug">
+                    <center>{dialog.data}</center>
                 </div>
                 <div className="row">
                     <center><a href="#" onClick={() => shell.openExternal('https://github.com/khlam/XAI-State-Action-Relay')}>Source</a> - <a href="#" onClick={() => shell.openExternal('https://github.com/khlam/XAI-State-Action-Relay/blob/master/README.md')}>Instructions</a></center>
